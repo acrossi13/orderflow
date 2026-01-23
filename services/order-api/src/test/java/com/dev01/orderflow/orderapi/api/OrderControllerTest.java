@@ -1,9 +1,9 @@
-package com.dev01.orderflow.orderapi.service;
+package com.dev01.orderflow.orderapi.api;
 
-import com.dev01.orderflow.orderapi.api.OrderController;
 import com.dev01.orderflow.orderapi.domain.Order;
 import com.dev01.orderflow.orderapi.domain.OrderStatus;
 
+import com.dev01.orderflow.orderapi.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -15,6 +15,7 @@ import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -45,5 +46,23 @@ class OrderControllerTest {
                 .andExpect(header().string("Location", "/orders/1"))
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.status").value("CREATED"));
+    }
+
+    @Test
+    void postOrders_shouldReturn400_whenInvalid() throws Exception {
+        mvc.perform(post("/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"customerCode\":\"\",\"amount\":0}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getById_shouldReturn200() throws Exception {
+        when(service.getById(eq("1")))
+                .thenReturn(new Order("1", "CUST-001", 10, OrderStatus.CREATED, Instant.now()));
+
+        mvc.perform(get("/orders/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("1"));
     }
 }
