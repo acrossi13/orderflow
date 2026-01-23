@@ -4,6 +4,8 @@ import com.dev01.orderflow.orderapi.api.errors.OrderNotFoundException;
 import com.dev01.orderflow.orderapi.domain.Order;
 import com.dev01.orderflow.orderapi.domain.OrderStatus;
 import com.dev01.orderflow.orderapi.repository.OrderRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,5 +33,9 @@ public class OrderService {
 
     public Order getById(String id) {
         return repo.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+    }
+
+    public Page<Order> list(Pageable pageable) {
+        return repo.findAll(pageable);
     }
 }
