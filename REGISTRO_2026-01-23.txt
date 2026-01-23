@@ -1,0 +1,63 @@
+cd ~/Dev/orderflow
+cat > REGISTRO_2026-01-23.txt << 'EOF'
+REGISTRO - 2026-01-23 (America/Sao_Paulo)
+Projeto: orderflow / services/order-api
+
+1) Estrutura do repositório
+- Criamos o monorepo orderflow com a pasta services/order-api.
+- Abrimos o projeto no IntelliJ apontando para .../orderflow/services/order-api.
+
+2) Ferramentas locais
+- Instalamos Homebrew.
+- Instalamos Maven.
+- Instalamos Starship (prompt colorido) e ativamos no zshrc.
+- Instalamos GitHub CLI (gh) e fizemos login.
+- Configuramos git via gh auth setup-git.
+
+3) API order-api (Spring Boot)
+- Criamos endpoints:
+  - POST /orders (criação de pedido)
+  - GET /orders/{id} (buscar por id)
+  - Ajuste de listagem: GET /orders (paginação com Pageable)
+- Criamos DTOs:
+  - CreateOrderRequest
+  - OrderResponse
+- Criamos exceções e handler:
+  - OrderNotFoundException
+  - ApiExceptionHandler (retorno 404 padronizado)
+
+4) Testes
+- Criamos testes do Controller com MockMvc e @WebMvcTest:
+  - valida 201 no POST
+  - valida 400 para request inválida
+  - valida 200 no GET por id
+  - valida 200 no GET /orders (listagem)
+- Criamos testes de Service com Mockito:
+  - create_shouldSaveOrder
+  - getById_shouldThrowWhenNotFound
+- Reduzimos logs nos testes via application.properties em src/test/resources.
+
+5) CI - GitHub Actions
+- Criamos .github/workflows/ci.yml na raiz do repo.
+- Corrigimos push bloqueado por token sem scope "workflow":
+  - fizemos login com gh (browser flow)
+  - executamos gh auth setup-git
+  - push do workflow passou.
+
+6) Banco (PostgreSQL + Flyway)
+- Subimos/validamos conexão local do Spring com profile "local".
+- Instalamos psql (via libpq) e ajustamos PATH no ~/.zshrc.
+- Conectamos no banco:
+  - psql "postgresql://orderflow:orderflow@localhost:5432/orderflow"
+- Validamos schema e tabelas:
+  - \dt mostrou: flyway_schema_history e orders
+  - \d orders confirmou colunas e PK
+  - SELECT confirmou registros inseridos via API.
+
+7) Commits realizados
+- feat: orders create and get by id with 404 handler
+- test: refine tests and quiet logs
+- ci: add GitHub Actions workflow for order-api tests
+- (se houver) feat: add list orders endpoint
+
+EOF
