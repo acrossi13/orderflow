@@ -4,7 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
 public record UpdateOrderStatusRequest(
-        @Schema(example = "APPROVED", allowableValues = {"CREATED", "APPROVED", "CANCELED"})
+        @Schema(
+                description = "Novo status do pedido",
+                example = "APPROVED",
+                allowableValues = {"CREATED","APPROVED","CANCELED"}
+        )
         @NotBlank String status
 ) {
 }

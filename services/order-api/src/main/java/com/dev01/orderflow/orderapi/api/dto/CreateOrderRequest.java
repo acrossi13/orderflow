@@ -8,6 +8,6 @@ import jakarta.validation.constraints.NotNull;
 public record CreateOrderRequest (
         @Schema(example = "CUST-001")
         @NotBlank String customerCode,
-        @Schema(example = "10", minimum = "1")
+        @Schema(description = "Valor do pedido (mínimo 1)", example = "10", minimum = "1")
         @NotNull @Min(1) Integer amount
 ) {}

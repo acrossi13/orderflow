@@ -70,7 +70,8 @@ public class OrderController {
         return service.list(pageable).map(OrderResponse::from);
     }
 
-    @Operation(summary = "Atualizar status do pedido", description = "Regras: CREATED -> APPROVED|CANCELED. APPROVED não pode virar CANCELED.")
+    @Operation(summary = "Atualizar status do pedido",
+                description = "Regras: CREATED -> APPROVED|CANCELED. APPROVED não pode virar CANCELED.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Status atualizado"),
             @ApiResponse(responseCode = "400", description = "Transição inválida"),
