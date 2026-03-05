@@ -2,6 +2,7 @@ package com.dev01.orderflow.orderapi.api;
 
 import com.dev01.orderflow.orderapi.api.dto.CreateOrderRequest;
 import com.dev01.orderflow.orderapi.api.dto.OrderResponse;
+import com.dev01.orderflow.orderapi.api.dto.UpdateOrderStatusRequest;
 import com.dev01.orderflow.orderapi.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -44,5 +45,14 @@ public class OrderController {
     @GetMapping
     public Page<OrderResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable).map(OrderResponse::from);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateOrderStatusRequest req
+    ) {
+        var updated = service.updateStatus(id, req.status());
+        return ResponseEntity.ok(OrderResponse.from(updated));
     }
 }

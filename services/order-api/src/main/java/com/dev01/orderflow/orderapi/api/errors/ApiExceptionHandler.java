@@ -18,4 +18,13 @@ public class ApiExceptionHandler {
         pd.setType(URI.create("https://httpstatuses.com/404"));
         return ResponseEntity.status(404).body(pd);
     }
+
+    @ExceptionHandler(InvalidOrderStatusTransitionException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidTransition(InvalidOrderStatusTransitionException ex) {
+        var pd = ProblemDetail.forStatus(400);
+        pd.setTitle("Bad Request");
+        pd.setDetail(ex.getMessage());
+        pd.setType(URI.create("https://httpstatuses.com/400"));
+        return ResponseEntity.badRequest().body(pd);
+    }
 }

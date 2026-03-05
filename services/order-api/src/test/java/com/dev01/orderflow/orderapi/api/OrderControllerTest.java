@@ -11,6 +11,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import com.dev01.orderflow.orderapi.api.errors.InvalidOrderStatusTransitionException;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 import java.time.Instant;
 
@@ -81,5 +84,28 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value("1"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void patchStatus_shouldReturn200() throws Exception {
+        when(service.updateStatus(eq("1"), eq("APPROVED")))
+                .thenReturn(new Order("1","CUST-001",10,OrderStatus.APPROVED,Instant.now()));
+
+        mvc.perform(patch("/orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"APPROVED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+    }
+
+    @Test
+    void patchStatus_shouldReturn400_whenInvalidTransition() throws Exception {
+        when(service.updateStatus(eq("1"), eq("CANCELED")))
+                .thenThrow(new InvalidOrderStatusTransitionException("APPROVED","CANCELED"));
+
+        mvc.perform(patch("/orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"CANCELED\"}"))
+                .andExpect(status().isBadRequest());
     }
 }
