@@ -4,6 +4,8 @@ import com.dev01.orderflow.orderapi.api.errors.InvalidOrderStatusTransitionExcep
 import com.dev01.orderflow.orderapi.api.errors.OrderNotFoundException;
 import com.dev01.orderflow.orderapi.domain.Order;
 import com.dev01.orderflow.orderapi.domain.OrderStatus;
+import com.dev01.orderflow.orderapi.domain.events.OrderEventPublisher;
+import com.dev01.orderflow.orderapi.domain.events.OrderStatusChangedEvent;
 import com.dev01.orderflow.orderapi.repository.OrderRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,9 +18,11 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository repo;
+    private final OrderEventPublisher eventPublisher;
 
-    public OrderService(OrderRepository repo) {
+    public OrderService(OrderRepository repo,  OrderEventPublisher eventPublisher) {
         this.repo = repo;
+        this.eventPublisher = eventPublisher;
     }
 
     public Order create(String customerCode, Integer amount) {
@@ -39,6 +43,7 @@ public class OrderService {
     public Page<Order> list(Pageable pageable) {
         return repo.findAll(pageable);
     }
+
     public Order updateStatus(String id, String newStatusRaw) {
         var order = getById(id);
 
@@ -64,7 +69,17 @@ public class OrderService {
                 order.createdAt()
         );
 
-        return repo.save(updated);
+
+        var saved = repo.save(updated);
+
+        eventPublisher.publish(new OrderStatusChangedEvent(
+                saved.id(),
+                from,
+                to,
+                Instant.now()
+        ));
+
+        return saved;
     }
 
     private boolean isAllowed(OrderStatus from, OrderStatus to) {
