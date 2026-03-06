@@ -1,7 +1,15 @@
 cd ~/Dev/orderflow
-cat > REGISTRO_2026-01-23.txt << 'EOF'
-REGISTRO - 2026-01-23 (America/Sao_Paulo)
+cat > REGISTRO_2026-03-06.txt << 'EOF'
+REGISTRO - 2026-03-06 (America/Sao_Paulo)
 Projeto: orderflow / services/order-api
+
+Resumo:
+Evolução do order-api com eventos (SQS), idempotência, persistência de métricas e observability local (Prometheus/Grafana),
+além de ajustes de profiles, docker-compose e README.
+
+================================================================================
+HISTÓRICO (2026-01-23)
+================================================================================
 
 1) Estrutura do repositório
 - Criamos o monorepo orderflow com a pasta services/order-api.
@@ -54,10 +62,111 @@ Projeto: orderflow / services/order-api
   - \d orders confirmou colunas e PK
   - SELECT confirmou registros inseridos via API.
 
-7) Commits realizados
+7) Commits realizados (histórico)
 - feat: orders create and get by id with 404 handler
 - test: refine tests and quiet logs
 - ci: add GitHub Actions workflow for order-api tests
 - (se houver) feat: add list orders endpoint
+
+
+================================================================================
+ATUALIZAÇÃO (2026-03-06)
+================================================================================
+
+1) Eventos: Publisher + Consumer
+- Implementamos publish de evento de mudança de status de pedido para SQS:
+  - evento: OrderStatusChangedEvent (orderId, from, to, occurredAt)
+  - publisher: SqsOrderEventPublisher (quando habilitado)
+  - modo alternativo: LoggingOrderEventPublisher (log-only)
+- Implementamos consumer SQS com:
+  - idempotência por event_id
+  - parsing do occurredAt
+  - persistência de payload + timestamps de SQS + métricas (ver seção DB)
+
+2) Modo de execução / Profiles
+- Mantivemos configuração por profiles:
+  - local: foco em rodar local (Docker/host) e permitir ligar/desligar SQS via property
+  - dev/prod: preparados para receber URL/nome da fila via propriedades/variáveis
+- Property de modo de eventos:
+  - app.events.publisher=log  (não usa AWS; só loga)
+  - app.events.publisher=sqs  (publica/consome do SQS real)
+
+3) Banco: tabela de idempotência + métricas (processed_events)
+- Criamos/expandimos a tabela processed_events para armazenar:
+  - event_id (PK)
+  - processed_at
+  - occurred_at (extraído do payload)
+  - source_message_id (MessageId do SQS)
+  - payload (jsonb)
+  - sqs_sent_at / sqs_received_at (quando disponível)
+- Flyway migrations adicionadas/atualizadas (nomes podem variar conforme versão):
+  - V5__processed_events_payload.sql
+  - V6__processed_events_sqs_timestamps.sql
+
+4) Métricas via SQL (latência)
+- Consultas para medir:
+  - consume latency: processed_at - occurred_at
+  - p50/p90/max via percentile_cont
+  - sqs latency: sqs_received_at - sqs_sent_at
+  - end-to-end: processed_at - sqs_sent_at
+
+5) Observability local (Prometheus + Grafana)
+- Subimos stack local via docker-compose com:
+  - postgres
+  - order-api
+  - prometheus
+  - grafana
+- Ajustamos o actuator para expor /actuator/prometheus.
+- Prometheus scrapes:
+  - job_name: order-api
+  - metrics_path: /actuator/prometheus
+  - target interno recomendado: order-api:8080 (dentro da rede docker)
+- Grafana:
+  - datasource provisionado apontando para o Prometheus
+  - dashboard manual criado no Grafana (painéis com queries PromQL)
+
+6) Docker/Compose
+- Criamos Dockerfile do serviço para build + run (containerizado).
+- Atualizamos docker-compose.yml para orquestrar:
+  - banco + app + observability
+- Ajuste importante:
+  - Em container, a aplicação usa SPRING_DATASOURCE_URL apontando para "postgres:5432"
+  - Para Prometheus, preferir target "order-api:8080" (e não host.docker.internal)
+
+7) README
+- README expandido e formatado com:
+  - requisitos
+  - como rodar Postgres / app / docker-compose
+  - endpoints
+  - modo log vs sqs
+  - comandos de teste (curl + aws cli quando aplicável)
+  - consultas SQL para métricas
+  - observability (Prometheus/Grafana)
+- Removido hardcode de dados sensíveis; recomendado usar variáveis/env file.
+
+8) Arquivos sensíveis
+- Criado template de env (ex.: order-api.env) para variáveis locais.
+- .env deve ser LOCAL e não comitar.
+- Ajustado .gitignore para ignorar:
+  - .env
+  - *.env
+
+9) Problemas resolvidos (principais)
+- Falha ao deletar mensagem SQS por ReceiptHandle inválido:
+  - resolvido obtendo ReceiptHandle via receive-message e depois delete-message.
+- Erro de SQL binding com Instant no JDBC:
+  - resolvido convertendo Instant -> java.sql.Timestamp.
+- Erro ClassCast ao ler headers do SQS:
+  - resolvido usando Message<String> e convertendo header id para String via toString().
+- /actuator/prometheus retornando 404:
+  - resolvido garantindo:
+    - dependency micrometer-registry-prometheus
+    - management.endpoints.web.exposure.include com "prometheus"
+- Porta 8080 ocupada:
+  - identificado processo (Docker) com lsof; evitar rodar app local e container ao mesmo tempo.
+
+10) Commits (2026-03-06)
+- feat(events): publish/consume SQS events and persist metrics
+- feat(observability): add Prometheus/Grafana + actuator prometheus + compose + README (commit final do dashboard/stack local)
 
 EOF
