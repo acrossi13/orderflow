@@ -31,3 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local env (NÃO COMMITAR)
+.env
+.env.*
+*.local
+*.local.*
+
+# Local secrets
+.env
+*.env
+
+# Local secrets
+.env
+*.env

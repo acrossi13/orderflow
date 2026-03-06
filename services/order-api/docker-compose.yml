@@ -11,5 +11,51 @@ services:
     volumes:
       - orderflow_pgdata:/var/lib/postgresql/data
 
+  order-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orderflow-order-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orderflow
+      SPRING_DATASOURCE_USERNAME: orderflow
+      SPRING_DATASOURCE_PASSWORD: orderflow
+      # se você quiser rodar SQS localmente, deixe suas credenciais no host (aws configure)
+      # e monte ~/.aws abaixo. Se não, comente essas 2 linhas e use app.events.publisher=log
+      SPRING_CLOUD_AWS_REGION_STATIC: sa-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_PROFILE_NAME: default
+    volumes:
+      - ~/.aws:/home/spring/.aws:ro
+    depends_on:
+      - postgres
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: orderflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - order-api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: orderflow-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
 volumes:
   orderflow_pgdata:
+  grafana_data:
