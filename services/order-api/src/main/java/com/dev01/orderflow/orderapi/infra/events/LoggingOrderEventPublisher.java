@@ -4,8 +4,10 @@ import com.dev01.orderflow.orderapi.domain.events.OrderEventPublisher;
 import com.dev01.orderflow.orderapi.domain.events.OrderStatusChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+@Profile("dev")
 @Component
 public class LoggingOrderEventPublisher implements OrderEventPublisher {
 
